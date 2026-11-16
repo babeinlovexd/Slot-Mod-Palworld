@@ -1,40 +1,60 @@
-# Guild Chest Slot Mod für Palworld (Linux Dedicated Server)
+<p align="center">
+  <a href="https://github.com/babeinlovexd"><img src="https://raw.githubusercontent.com/babeinlovexd/babeinlovexd/main/bxd-github-header.svg" width="520" alt="BxD / BabeinlovexD"></a>
+</p>
 
-Diese Modifikation erhöht die Anzahl der Lagerplätze (Slots) in der Gilden-Truhe (Guild Chest) in Palworld. Standardmäßig bietet die Gilden-Truhe 54 Plätze, mit dieser Mod wird die Kapazität auf 500 Plätze erhöht (konfigurierbar im Skript).
+# Guild Chest Slot Mod
 
-Die Mod basiert auf [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) (Unreal Engine 4 Server Scripting) und verwendet ein Lua-Skript, um zur Laufzeit auf die Initialisierung der Truhe zuzugreifen und deren Platzangebot zu erweitern.
+[Fragen & Fehler](https://github.com/babeinlovexd/Slot-Mod-Palworld/issues)
 
-**Wichtig für Dedicated Server & Singleplayer:**
-Die Größe der Gilden-Truhe wird in das Savegame (den Spielstand) geschrieben, sobald die Gilde (und damit die erste Truhe) erstellt wird. Damit die erhöhten Slots auf einem Server oder im Singleplayer greifen, muss die Mod aktiv sein **bevor** die Truhe gebaut/die Gilde gegründet wird, **oder** die Spieler müssen die Gilde verlassen, eine neue Gilde gründen und beitreten (auf einem Server möglich). Auf einem Server greift dies am besten, wenn man eine neue Gilde gründet oder das Spiel mit einem neuen Charakter startet. Einzelspieler müssen ggf. einen neuen Spielstand beginnen. Wenn Truhen bereits existieren, müssen diese unter Umständen abgebaut und neu platziert werden.
+Eine **experimentelle UE4SS-Lua-Mod für Palworld**, die beim Initialisieren eines Item-Containers dessen Slotanzahl prüft. Container mit **54 Slots** werden auf den konfigurierten Zielwert gesetzt, standardmäßig **500**.
+
+Die Mod ist ein Hobbyprojekt und hat im Einsatz noch gelegentlich Probleme. Der aktuelle Code erkennt Container anhand der Slotanzahl, nicht anhand einer eindeutigen Guild-Chest-Klassenprüfung. Andere Container mit 54 Slots können deshalb ebenfalls betroffen sein.
 
 ## Voraussetzungen
 
-- Ein laufender Palworld Linux Dedicated Server
-- Installiertes **UE4SS (Experimental Palworld Fork)** für Linux/Proton. (Beachte, dass UE4SS auf Linux-Servern häufig über Proton oder Wine ausgeführt wird, wenn der Server als Windows-Binary mit Wine/Proton läuft. Wenn es ein nativer Linux-Server ist, muss ein Linux-kompatibler UE4SS-Build verwendet werden oder ein Injection-Tool für Linux).
+- Eine Palworld-Installation, in der ein passender UE4SS-Build bereits erfolgreich Lua-Mods lädt.
+- Zugriff auf das UE4SS-Verzeichnis `Mods`.
+- Eine Sicherung des Spielstands vor dem Einsatz oder Änderungen an der Mod.
+
+Ein nativer Linux-Server und eine Windows-Serverinstallation unter Wine/Proton sind unterschiedliche Umgebungen. Dieses Repository liefert keinen eigenen UE4SS-Loader oder Nachweis einer universellen Linux-Kompatibilität.
 
 ## Installation
 
-1. Stelle sicher, dass UE4SS auf deinem Server korrekt installiert und konfiguriert ist.
-2. Lade diesen Mod-Ordner (`GuildChestMod`) herunter.
-3. Kopiere den Ordner `GuildChestMod` in das `Mods`-Verzeichnis deiner UE4SS-Installation auf dem Server.
-   Standardpfad (Windows/Proton): `Pal/Binaries/Win64/Mods/`
-   Beispiel: `Pal/Binaries/Win64/Mods/GuildChestMod/Scripts/main.lua`
-4. Öffne die Datei `mods.txt` im `Mods`-Ordner deines Servers und füge am Ende der Liste folgende Zeile hinzu (oder ändere 0 auf 1, falls schon vorhanden):
-   ```text
-   GuildChestMod : 1
-   ```
-5. Speichere die Datei und starte den Palworld Dedicated Server neu.
+1. Den Ordner [GuildChestMod](GuildChestMod) in das `Mods`-Verzeichnis der funktionierenden UE4SS-Installation kopieren.
+2. Prüfen, dass `Mods/GuildChestMod/Scripts/main.lua` vorhanden ist.
+3. In `mods.txt` aktivieren:
+
+```text
+GuildChestMod : 1
+```
+
+4. Spiel bzw. Server neu starten und im UE4SS-Log nach `GuildChestMod loading...` und `GuildChestMod loaded.` suchen.
 
 ## Konfiguration
 
-Du kannst die Anzahl der Slots anpassen, indem du die Datei `Scripts/main.lua` öffnest und die Variable `TARGET_SLOTS` änderst:
+In [GuildChestMod/Scripts/main.lua](GuildChestMod/Scripts/main.lua) den Zielwert anpassen:
 
 ```lua
-local TARGET_SLOTS = 500 -- Ändere diese Zahl für mehr oder weniger Slots
+local TARGET_SLOTS = 500
 ```
 
-## Fehlerbehebung
+Die Änderung wird im Hook von `PalMapObjectItemContainerModule:Initialize` versucht: zuerst über `ChangeSlotNum`, dann `UpdateSlotNum`, andernfalls über `SlotNum`. Bereits geladene oder gespeicherte Container werden dadurch nicht zwangsläufig nachträglich umgebaut.
 
-- **Die Slots bleiben bei 54:** Baue die Gilden-Truhe ab und platziere sie neu. Sollte das nicht helfen, müssen die Spieler ihre aktuelle Gilde auflösen/verlassen und eine neue Gilde gründen (siehe "Wichtig" oben).
-- **Mod lädt nicht:** Überprüfe in den UE4SS Logs (`UE4SS.log`), ob das Skript geladen wurde. Suche nach `[Lua] GuildChestMod loading...`. Überprüfe, ob `mods.txt` korrekt editiert wurde.
-- **Server stürzt ab:** Möglicherweise gibt es Konflikte mit anderen Mods, die das Inventar verändern, oder die UE4SS-Version ist inkompatibel zum aktuellen Palworld-Update.
+## Fehlersuche
+
+- **Keine Lade-Meldung:** UE4SS-Installation, Verzeichnisstruktur und `mods.txt` prüfen.
+- **Mod lädt, Slots bleiben gleich:** Prüfen, ob der betreffende Container beim Hook 54 Slots hat und erneut initialisiert wurde. Fehler im Änderungsblock werden durch `pcall` abgefangen und momentan nicht separat ausgegeben.
+- **Probleme nach Spielupdates:** Mod deaktivieren und Spiel-/UE4SS-Version sowie Logauszug im Issue nennen.
+- **Bestehende Gilde oder Spielstand:** Nicht allein zur Fehlersuche die Gilde auflösen oder einen Spielstand ersetzen. Änderungen zuerst mit einer Sicherung bzw. Testwelt prüfen.
+
+---
+
+## Builds und Releases
+
+Version: **0.1.0** ([VERSION](VERSION)). [GitHub Actions](.github/workflows/release.yml) prüft Pushes und Pull Requests. Ein Tag passend zu `v` + `VERSION` veröffentlicht das Release erst nach erfolgreichen Jobs; manuelle Läufe liefern Build-Artefakte. [Downloads](https://github.com/babeinlovexd/Slot-Mod-Palworld/releases).
+
+## Mitmachen
+
+Fragen, Fehlerberichte und Beiträge sind willkommen. Nenne bei einem [Issue](https://github.com/babeinlovexd/Slot-Mod-Palworld/issues) bitte Version, Aufbau und Schritte zum Nachstellen. Größere Änderungen besprechen wir am besten vor einem Pull Request.
+
+[BxD / BabeinlovexD](https://github.com/babeinlovexd) · [Website](https://babeinlovexd.de/)
